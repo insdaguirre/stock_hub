@@ -2,7 +2,7 @@
   "name": "front",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://insdaguirre.github.io/stonk_hub",
+  "homepage": "https://insdaguirre.github.io/stock_hub",
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
