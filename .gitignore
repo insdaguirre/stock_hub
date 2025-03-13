@@ -1,0 +1,7 @@
+node_modules/
+.env
+__pycache__/
+*.pyc
+saved_models/
+.DS_Store
+build/
