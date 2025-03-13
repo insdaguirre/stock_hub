@@ -1,6 +1,8 @@
 // src/services/api.js
 const ALPHA_VANTAGE_API_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY || 'YOUR_API_KEY_HERE';
-const BASE_URL = 'http://localhost:8000/api';
+const BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://stock-hub-backend.onrender.com/api'
+  : 'http://localhost:8000/api';
 
 // Fetch historical data from Alpha Vantage
 const fetchHistoricalData = async (symbol) => {
