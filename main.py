@@ -1,11 +1,13 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from dotenv import load_dotenv
-import os
 import requests
 from datetime import datetime, timedelta
 import numpy as np
+import asyncio
+from concurrent.futures import ProcessPoolExecutor
+
+# Import models
 from models.lstm_model import LSTMPredictor
 from models.random_forest_model import RandomForestPredictor
 from models.prophet_model import ProphetPredictor
@@ -16,10 +18,9 @@ from models.gru_model import GRUPredictor
 from models.lightgbm_model import LightGBMPredictor
 from models.catboost_model import CatBoostPredictor
 from models.wavelet_model import WaveletNNPredictor
-import asyncio
-from concurrent.futures import ProcessPoolExecutor
 
-load_dotenv()
+# Import settings
+import settings
 
 app = FastAPI()
 
@@ -31,10 +32,7 @@ async def root():
 # CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://insdaguirre.github.io"
-    ],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -42,11 +40,10 @@ app.add_middleware(
 
 # Initialize model cache
 model_cache = {}
-ALPHA_VANTAGE_API_KEY = os.getenv('ALPHA_VANTAGE_API_KEY')
 
 async def fetch_stock_data(symbol: str):
     """Fetch stock data from Alpha Vantage"""
-    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&outputsize=full&apikey={ALPHA_VANTAGE_API_KEY}'
+    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&outputsize=full&apikey={settings.ALPHA_VANTAGE_API_KEY}'
     
     try:
         response = requests.get(url)
@@ -115,7 +112,7 @@ def train_models_task(historical_data, symbol):
 @app.get("/api/stock/{symbol}")
 async def get_stock_data(symbol: str):
     """Get current stock data"""
-    url = f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={ALPHA_VANTAGE_API_KEY}'
+    url = f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={settings.ALPHA_VANTAGE_API_KEY}'
     
     try:
         response = requests.get(url)
@@ -283,5 +280,9 @@ async def get_predictions(symbol: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port, workers=6) 
+    uvicorn.run(
+        app, 
+        host=settings.HOST, 
+        port=settings.PORT, 
+        workers=settings.WORKERS
+    ) 
