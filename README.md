@@ -1,6 +1,33 @@
-# Quant Model Comparison Website
+# Stock Hub Backend
 
-Welcome to the repository for **Quant Model Comparisons**! This project allows users to visualize, compare, and contrast predictions for a single stock symbol across multiple quantitative models. Whether you’re a data scientist, quant enthusiast, or just curious about financial forecasting, this tool makes it easy to examine how different models perform on the same data.
+A stock prediction API with multiple prediction models including LSTM, Random Forest, Prophet, and more.
+
+## Features
+
+- Stock price predictions using multiple models
+- Historical stock data retrieval
+- API endpoints for frontend integration
+
+## Deployment
+
+This application is designed to be deployed on Render.
+
+## Local Development
+
+1. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+2. Run the server:
+```bash
+python server.py
+```
+
+## Environment Variables
+
+- `ALPHA_VANTAGE_API_KEY`: Your Alpha Vantage API key
+- `PORT`: The port to run the server on (default: 8000)
 
 ---
 
@@ -23,7 +50,7 @@ Modern quantitative finance often involves testing multiple forecasting methods 
 - Displaying predictions from various quant models side-by-side
 - Enabling visual and statistical comparisons
 
-By making these comparisons more accessible, it’s easier to identify model strengths, weaknesses, and applicability.
+By making these comparisons more accessible, it's easier to identify model strengths, weaknesses, and applicability.
 
 ---
 
