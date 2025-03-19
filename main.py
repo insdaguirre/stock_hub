@@ -23,6 +23,11 @@ load_dotenv()
 
 app = FastAPI()
 
+# Root endpoint for health check
+@app.get("/")
+async def root():
+    return {"status": "API is running", "endpoints": ["/api/stock/{symbol}", "/api/predictions/{symbol}"]}
+
 # CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
