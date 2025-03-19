@@ -1,6 +1,6 @@
 # Quant Model Comparison Website
 
-Welcome to the repository for the **Quant Model Comparison Website**! This project allows users to visualize, compare, and contrast predictions for a single stock symbol across multiple quantitative models. Whether you’re a data scientist, quant enthusiast, or just curious about financial forecasting, this tool makes it easy to examine how different models perform on the same data.
+Welcome to the repository for **Quant Model Comparisons**! This project allows users to visualize, compare, and contrast predictions for a single stock symbol across multiple quantitative models. Whether you’re a data scientist, quant enthusiast, or just curious about financial forecasting, this tool makes it easy to examine how different models perform on the same data.
 
 ---
 
