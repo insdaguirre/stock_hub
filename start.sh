@@ -7,5 +7,5 @@ echo "Working directory: $(pwd)"
 echo "Files in directory:"
 ls -la
 
-# Run the application
-exec gunicorn -w 6 -k uvicorn.workers.UvicornWorker --timeout 120 --log-level debug main:app 
+# Run the simplified application
+exec gunicorn -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 120 --log-level debug app:app 
