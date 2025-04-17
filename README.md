@@ -26,7 +26,7 @@ python server.py
 
 ## Environment Variables
 
-- `ALPHA_VANTAGE_API_KEY`: Your Alpha Vantage API key
+- `ALPHA_VANTAGE__KEY`: Your Alpha Vantage API key
 - `PORT`: The port to run the server on (default: 8000)
 
 ---

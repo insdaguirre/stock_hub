@@ -6,6 +6,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom'; //A 
 import styled from 'styled-components';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'; //A library for building charts in react
 import { getStockData, getPredictions } from '../services/api'; //Functions ipported from an API service module to fetch stock data and predictions
+import ProgressBar from './ProgressBar';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -94,6 +95,25 @@ const MetricValue = styled.div`
   color: ${props => props.isPositive ? '#34C759' : props.isNegative ? '#FF3B30' : '#1c1c1e'};
 `;
 
+const LoadingContainer = styled.div`
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+`;
+
+const LoadingTitle = styled.h2`
+  margin: 0 0 16px 0;
+  color: #1c1c1e;
+`;
+
+const ProgressContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
 const models = {
   1: {
     name: 'LSTM Neural Network',
@@ -127,30 +147,105 @@ const StockPage = () => { //Defines StockPage as a functional react component
   const [predictions, setPredictions] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [predictionProgress, setPredictionProgress] = useState(0);
+  const [dataLoadingProgress, setDataLoadingProgress] = useState(0);
 
-  useEffect(() => { //Defines a side effect that fetches stock data and predictions when the component mounts
-    const fetchData = async () => { //Defines a function to fetch the data
+  const simulateProgress = () => {
+    const dataLoadingTime = 2; // seconds
+    const predictionTime = 5; // seconds
+    
+    let dataProgress = 0;
+    const dataInterval = setInterval(() => {
+      dataProgress += 5;
+      setDataLoadingProgress(Math.min(dataProgress, 100));
+      
+      if (dataProgress >= 100) {
+        clearInterval(dataInterval);
+      }
+    }, (dataLoadingTime * 1000) / 20); // 20 steps
+    
+    setTimeout(() => {
+      let calcProgress = 0;
+      const calcInterval = setInterval(() => {
+        calcProgress += 3; 
+        setPredictionProgress(Math.min(calcProgress, 100));
+        
+        if (calcProgress >= 100) {
+          clearInterval(calcInterval);
+        }
+      }, (predictionTime * 1000) / 33); // 33 steps
+    }, dataLoadingTime * 700); // Start when data is 70% loaded
+    
+    return () => {
+      clearInterval(dataInterval);
+    };
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
       try {
         setLoading(true);
+        
+        const clearProgressSimulation = simulateProgress();
+        
         const [stockResponse, predictionResponse] = await Promise.all([
           getStockData(symbol),
           getPredictions(symbol)
         ]);
         
-        setStockData(stockResponse);
-        setPredictions(predictionResponse);
+        setDataLoadingProgress(100);
+        setPredictionProgress(100);
+        
+        setTimeout(() => {
+          setStockData(stockResponse);
+          setPredictions(predictionResponse);
+          setLoading(false);
+        }, 500);
+        
+        return clearProgressSimulation;
       } catch (err) {
         setError('Failed to fetch data. Please try again later.');
         console.error('Error:', err);
-      } finally {
         setLoading(false);
       }
     };
 
-    fetchData(); //calls the fetchData function
-  }, [symbol]); //Runs the side effect when the component mounts and when the symbol changes
+    const clearFn = fetchData();
+    
+    return () => {
+      if (clearFn) clearFn();
+    };
+  }, [symbol]);
 
-  if (loading) return <Container>Loading...</Container>;
+  if (loading) {
+    return (
+      <Container>
+        <Header>
+          <StockInfo>
+            <StockSymbol>{symbol}</StockSymbol>
+          </StockInfo>
+          <BackButton onClick={() => navigate('/')}>Back to Search</BackButton>
+        </Header>
+        
+        <LoadingContainer>
+          <LoadingTitle>Loading Stock Data & Predictions</LoadingTitle>
+          <ProgressContainer>
+            <ProgressBar 
+              progress={dataLoadingProgress}
+              label="Fetching Market Data"
+              timeRemaining={Math.ceil((100 - dataLoadingProgress) / 50)}
+            />
+            <ProgressBar 
+              progress={predictionProgress}
+              label="Calculating Predictions"
+              timeRemaining={Math.ceil((100 - predictionProgress) / 20)}
+            />
+          </ProgressContainer>
+        </LoadingContainer>
+      </Container>
+    );
+  }
+  
   if (error) return <Container>{error}</Container>;
   if (!stockData || !predictions) return <Container>No data available</Container>;
 
@@ -159,7 +254,7 @@ const StockPage = () => { //Defines StockPage as a functional react component
   const percentChange = (priceChange / stockData.previousClose) * 100;
   const isPositive = priceChange >= 0;
 
-  return ( //defines what the components UI should look like
+  return (
     <Container>
       <Header>
         <StockInfo>
@@ -225,4 +320,4 @@ const StockPage = () => { //Defines StockPage as a functional react component
   );
 };
 
-export default StockPage; //Exports the StockPage component for use in other parts of the application
+export default StockPage;

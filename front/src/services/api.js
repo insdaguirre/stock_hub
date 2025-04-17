@@ -1,9 +1,10 @@
 // src/services/api.js
 const ALPHA_VANTAGE_API_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY || 'YOUR_API_KEY_HERE';
 const BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://stock-hub-backend.onrender.com/api'
+  ? 'https://stock-hub-api.vercel.app/api'
   : 'http://localhost:8000/api';
 
+// eslint-disable-next-line no-unused-vars
 // Fetch historical data from Alpha Vantage
 const fetchHistoricalData = async (symbol) => {
   const response = await fetch(
@@ -22,6 +23,7 @@ const fetchHistoricalData = async (symbol) => {
   })).reverse();
 };
 
+// eslint-disable-next-line no-unused-vars
 // LSTM Model Implementation
 const lstmPredict = async (data) => {
   // Simulate LSTM prediction using last 30 days of data
@@ -37,6 +39,7 @@ const lstmPredict = async (data) => {
   };
 };
 
+// eslint-disable-next-line no-unused-vars
 // Random Forest Implementation
 const randomForestPredict = async (data) => {
   // Simulate Random Forest prediction using technical indicators
@@ -51,6 +54,7 @@ const randomForestPredict = async (data) => {
   };
 };
 
+// eslint-disable-next-line no-unused-vars
 // Prophet Model Implementation
 const prophetPredict = async (data) => {
   // Simulate Prophet prediction using seasonality
@@ -65,6 +69,7 @@ const prophetPredict = async (data) => {
   };
 };
 
+// eslint-disable-next-line no-unused-vars
 // XGBoost Implementation
 const xgboostPredict = async (data) => {
   // Simulate XGBoost prediction using multiple features
@@ -78,6 +83,7 @@ const xgboostPredict = async (data) => {
   };
 };
 
+// eslint-disable-next-line no-unused-vars
 // ARIMA Implementation
 const arimaPredict = async (data) => {
   // Simulate ARIMA prediction using time series components

@@ -1,8 +1,9 @@
 // src/components/HomePage.js
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { getPredictions } from '../services/api';
+import ProgressBar from './ProgressBar';
 
 const Container = styled.div`
   max-width: 800px;
@@ -30,10 +31,6 @@ const DateText = styled.h2`
   color: #666;
   margin: 5px 0 15px 0;
   font-weight: normal;
-`;
-
-const SearchContainer = styled.div`
-  margin: 16px 0;
 `;
 
 const SearchInput = styled.input`
@@ -146,6 +143,26 @@ const ErrorMessage = styled.div`
   background-color: #1C1C1E;
   border-radius: 10px;
   margin-bottom: 20px;
+`;
+
+// Add new styled components for the progress section
+const LoadingContainer = styled.div`
+  background-color: #1C1C1E;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+`;
+
+const LoadingTitle = styled.h3`
+  font-size: 18px;
+  color: #FFFFFF;
+  margin: 0 0 15px 0;
+`;
+
+const ProgressContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 `;
 
 // Extended list of 20 models with more variety
@@ -293,56 +310,129 @@ const models = [
 ];
 
 const HomePage = () => {
-  const [stockSymbol, setStockSymbol] = useState('');
-  const [activeStock, setActiveStock] = useState(null);
-  const [predictions, setPredictions] = useState(null);
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSymbol, setSelectedSymbol] = useState('AAPL'); // Default to Apple
+  const [predictionsData, setPredictionsData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
+  // New state for tracking loading progress
+  const [loadingProgress, setLoadingProgress] = useState({});
+  const [overallProgress, setOverallProgress] = useState(0);
 
-  useEffect(() => {
-    const fetchPredictions = async () => {
-      if (!activeStock) return;
-      
+  // Function to simulate loading progress for each model
+  const simulateProgress = (modelIds) => {
+    // Initialize progress for each model
+    const initialProgress = {};
+    modelIds.forEach(id => {
+      initialProgress[id] = 0;
+    });
+    setLoadingProgress(initialProgress);
+    
+    // Simulate different completion times for different models
+    const modelTimes = {
+      1: 3,  // LSTM takes longest
+      2: 2,  // Random Forest
+      3: 2.5,// Prophet
+      4: 1.8,// XGBoost
+      5: 1.5 // ARIMA is fastest
+    };
+    
+    // Update progress every 100ms
+    const interval = setInterval(() => {
+      setLoadingProgress(prev => {
+        const updated = { ...prev };
+        let allComplete = true;
+        let totalProgress = 0;
+        
+        modelIds.forEach(id => {
+          if (updated[id] < 100) {
+            // Increase progress based on model complexity
+            const increment = 100 / (modelTimes[id] * 10); // 10 updates per second
+            updated[id] = Math.min(updated[id] + increment, 100);
+            
+            if (updated[id] < 100) {
+              allComplete = false;
+            }
+          }
+          totalProgress += updated[id];
+        });
+        
+        // Calculate overall progress
+        setOverallProgress(totalProgress / modelIds.length);
+        
+        // If all models are done, clear the interval
+        if (allComplete) {
+          clearInterval(interval);
+        }
+        
+        return updated;
+      });
+    }, 100);
+    
+    // Store the interval ID to clear it if component unmounts
+    return interval;
+  };
+
+  const fetchPredictions = async () => {
+    if (!selectedSymbol) return;
+    
+    try {
       setLoading(true);
       setError(null);
-      try {
-        const data = await getPredictions(activeStock);
-        setPredictions(data);
-      } catch (err) {
-        setError('Failed to fetch predictions. Please try again.');
-        console.error('Error:', err);
-      } finally {
+      
+      // Get the model IDs we need to load (1-5)
+      const modelIds = [1, 2, 3, 4, 5];
+      
+      // Start the progress simulation
+      const progressInterval = simulateProgress(modelIds);
+      
+      // Fetch actual predictions
+      const data = await getPredictions(selectedSymbol);
+      setPredictionsData(data);
+      
+      // Ensure we show 100% progress before stopping
+      setLoadingProgress(prev => {
+        const complete = {};
+        modelIds.forEach(id => {
+          complete[id] = 100;
+        });
+        return complete;
+      });
+      setOverallProgress(100);
+      
+      // Clear the interval after a short delay to ensure UI shows 100%
+      setTimeout(() => {
+        clearInterval(progressInterval);
         setLoading(false);
-      }
-    };
-
-    fetchPredictions();
-  }, [activeStock]);
+      }, 500);
+      
+    } catch (err) {
+      setError('Failed to fetch predictions. Please try again.');
+      console.error('Error:', err);
+      setLoading(false);
+    }
+  };
 
   const handleSearch = (e) => {
-    e.preventDefault();
-    if (stockSymbol) {
-      setActiveStock(stockSymbol.toUpperCase());
+    setSearchTerm(e.target.value);
+    // If it looks like a valid stock symbol, update selectedSymbol
+    if (/^[A-Z]{1,5}$/.test(e.target.value.toUpperCase())) {
+      setSelectedSymbol(e.target.value.toUpperCase());
     }
   };
 
   const handleModelClick = (modelId) => {
-    if (activeStock) {
-      navigate(`/stock/${activeStock}?model=${modelId}`);
+    if (selectedSymbol) {
+      navigate(`/stock/${selectedSymbol}?model=${modelId}`);
     }
   };
 
-  const currentDate = new Date().toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric'
-  });
-
   const getModelPrediction = (modelId) => {
-    if (!predictions || !predictions.models[modelId]) return null;
+    if (!predictionsData || !predictionsData.models[modelId]) return null;
     
-    const model = predictions.models[modelId];
-    const predictionValue = ((model.prediction / predictions.historicalData[predictions.historicalData.length - 1].price) - 1) * 100;
+    const model = predictionsData.models[modelId];
+    const predictionValue = ((model.prediction / predictionsData.historicalData[predictionsData.historicalData.length - 1].price) - 1) * 100;
     return {
       prediction: `${predictionValue >= 0 ? '+' : ''}${predictionValue.toFixed(2)}%`,
       accuracy: `${model.accuracy}%`,
@@ -356,25 +446,72 @@ const HomePage = () => {
   return (
     <Container>
       <Header>
-        <Title>Stock Predictions</Title>
-        <DateText>{currentDate}</DateText>
+        <Title>Stock Prediction Hub</Title>
+        <DateText>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</DateText>
       </Header>
-
-      <StockSelector>
-        <StockSelectorTitle>Enter Stock Symbol</StockSelectorTitle>
-        <form onSubmit={handleSearch}>
-          <SearchInput
+      
+      <SearchInput
         type="text"
-        value={stockSymbol}
-        onChange={(e) => setStockSymbol(e.target.value)}
-            placeholder="Enter stock symbol (e.g., AAPL)"
-          />
-        </form>
+        placeholder="Enter stock symbol (e.g., AAPL, MSFT, GOOGL)"
+        value={searchTerm}
+        onChange={handleSearch}
+      />
+      
+      <StockSelector>
+        <StockSelectorTitle>Selected Symbol: {selectedSymbol}</StockSelectorTitle>
+        <SearchInput
+          type="button"
+          value="Get Predictions"
+          onClick={fetchPredictions}
+          style={{ 
+            backgroundColor: '#0A84FF',
+            color: 'white',
+            fontWeight: 'bold',
+            cursor: 'pointer'
+          }}
+        />
       </StockSelector>
+
+      {loading && (
+        <LoadingContainer>
+          <LoadingTitle>Generating Predictions ({Math.round(overallProgress)}% Complete)</LoadingTitle>
+          <ProgressContainer>
+            <ProgressBar 
+              progress={overallProgress}
+              label="Overall Progress"
+            />
+            <ProgressBar 
+              progress={loadingProgress[1] || 0}
+              label="LSTM Neural Network"
+              timeRemaining={Math.ceil((100 - (loadingProgress[1] || 0)) / 33)}
+            />
+            <ProgressBar 
+              progress={loadingProgress[2] || 0}
+              label="Random Forest"
+              timeRemaining={Math.ceil((100 - (loadingProgress[2] || 0)) / 50)}
+            />
+            <ProgressBar 
+              progress={loadingProgress[3] || 0}
+              label="Prophet Model"
+              timeRemaining={Math.ceil((100 - (loadingProgress[3] || 0)) / 40)}
+            />
+            <ProgressBar 
+              progress={loadingProgress[4] || 0}
+              label="XGBoost"
+              timeRemaining={Math.ceil((100 - (loadingProgress[4] || 0)) / 55)}
+            />
+            <ProgressBar 
+              progress={loadingProgress[5] || 0}
+              label="ARIMA"
+              timeRemaining={Math.ceil((100 - (loadingProgress[5] || 0)) / 66)}
+            />
+          </ProgressContainer>
+        </LoadingContainer>
+      )}
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
 
-      {activeStock && (
+      {selectedSymbol && (
         <ModelsList style={{ position: 'relative' }}>
           {loading && <LoadingOverlay>Loading predictions...</LoadingOverlay>}
           {implementedModels.map(model => {
